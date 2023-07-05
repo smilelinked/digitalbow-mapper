@@ -18,13 +18,13 @@ package globals
 
 import (
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/kubeedge/mappers-go/mappers/modbus/driver"
+	"github.com/smilelinkd/digitalbow-mapper/driver"
 )
 
 // ModbusDev is the modbus device configuration and client information.
 type ModbusDev struct {
 	Instance     common.DeviceInstance
-	ModbusClient *driver.ModbusClient
+	ModbusClient *driver.DigitalbowClient
 }
 
 var MqttClient common.MqttClient

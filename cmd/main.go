@@ -22,9 +22,9 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/kubeedge/mappers-go/mappers/modbus/config"
-	"github.com/kubeedge/mappers-go/mappers/modbus/device"
-	"github.com/kubeedge/mappers-go/mappers/modbus/globals"
+	"github.com/smilelinkd/digitalbow-mapper/config"
+	"github.com/smilelinkd/digitalbow-mapper/device"
+	"github.com/smilelinkd/digitalbow-mapper/globals"
 )
 
 func main() {

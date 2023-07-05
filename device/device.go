@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 	"sync"
 	"time"
 
@@ -29,9 +28,9 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/kubeedge/mappers-go/mappers/modbus/configmap"
-	"github.com/kubeedge/mappers-go/mappers/modbus/driver"
-	"github.com/kubeedge/mappers-go/mappers/modbus/globals"
+	"github.com/smilelinkd/digitalbow-mapper/configmap"
+	"github.com/smilelinkd/digitalbow-mapper/driver"
+	"github.com/smilelinkd/digitalbow-mapper/globals"
 )
 
 var devices map[string]*globals.ModbusDev
@@ -40,7 +39,7 @@ var protocols map[string]common.Protocol
 var wg sync.WaitGroup
 
 // setVisitor check if visitor property is readonly, if not then set it.
-func setVisitor(visitorConfig *configmap.ModbusVisitorConfig, twin *common.Twin, client *driver.ModbusClient) {
+func setVisitor(visitorConfig *configmap.ModbusVisitorConfig, twin *common.Twin, client *driver.DigitalbowClient) {
 	if twin.PVisitor.PProperty.AccessMode == "ReadOnly" {
 		klog.V(1).Info("Visit readonly register: ", visitorConfig.Offset)
 		return
@@ -130,10 +129,10 @@ func isRS485Enabled(customizedValue configmap.CustomizedValue) bool {
 	return isEnabled
 }
 
-// initModbus initialize modbus client
-func initModbus(protocolConfig configmap.ModbusProtocolCommonConfig, slaveID int16) (client *driver.ModbusClient, err error) {
+// initBow initialize bow client
+func initBow(protocolConfig configmap.BowProtocolCommonConfig, slaveID int16) (client *driver.DigitalbowClient, err error) {
 	if protocolConfig.COM.SerialPort != "" {
-		modbusRTU := driver.ModbusRTU{SlaveID: byte(slaveID),
+		modbusRTU := driver.BowRTU{SlaveID: byte(slaveID),
 			SerialName:   protocolConfig.COM.SerialPort,
 			BaudRate:     int(protocolConfig.COM.BaudRate),
 			DataBits:     int(protocolConfig.COM.DataBits),
@@ -142,13 +141,6 @@ func initModbus(protocolConfig configmap.ModbusProtocolCommonConfig, slaveID int
 			RS485Enabled: isRS485Enabled(protocolConfig.CustomizedValues),
 			Timeout:      5 * time.Second}
 		client, _ = driver.NewClient(modbusRTU)
-	} else if protocolConfig.TCP.IP != "" {
-		modbusTCP := driver.ModbusTCP{
-			SlaveID:  byte(slaveID),
-			DeviceIP: protocolConfig.TCP.IP,
-			TCPPort:  strconv.FormatInt(protocolConfig.TCP.Port, 10),
-			Timeout:  5 * time.Second}
-		client, _ = driver.NewClient(modbusTCP)
 	} else {
 		return nil, errors.New("No protocol found")
 	}
@@ -232,19 +224,19 @@ func initGetStatus(dev *globals.ModbusDev) {
 
 // start start the device.
 func start(dev *globals.ModbusDev) {
-	var protocolCommConfig configmap.ModbusProtocolCommonConfig
+	var protocolCommConfig configmap.BowProtocolCommonConfig
 	if err := json.Unmarshal([]byte(dev.Instance.PProtocol.ProtocolCommonConfig), &protocolCommConfig); err != nil {
 		klog.Errorf("Unmarshal ProtocolCommonConfig error: %v", err)
 		return
 	}
 
-	var protocolConfig configmap.ModbusProtocolConfig
+	var protocolConfig configmap.BowProtocolConfig
 	if err := json.Unmarshal([]byte(dev.Instance.PProtocol.ProtocolConfigs), &protocolConfig); err != nil {
 		klog.Errorf("Unmarshal ProtocolConfigs error: %v", err)
 		return
 	}
 
-	client, err := initModbus(protocolCommConfig, protocolConfig.SlaveID)
+	client, err := initBow(protocolCommConfig, protocolConfig.SlaveID)
 	if err != nil {
 		klog.Errorf("Init error: %v", err)
 		return

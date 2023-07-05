@@ -26,14 +26,14 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/kubeedge/mappers-go/mappers/modbus/configmap"
-	"github.com/kubeedge/mappers-go/mappers/modbus/driver"
-	"github.com/kubeedge/mappers-go/mappers/modbus/globals"
+	"github.com/smilelinkd/digitalbow-mapper/configmap"
+	"github.com/smilelinkd/digitalbow-mapper/driver"
+	"github.com/smilelinkd/digitalbow-mapper/globals"
 )
 
 // TwinData is the timer structure for getting twin/data.
 type TwinData struct {
-	Client        *driver.ModbusClient
+	Client        *driver.DigitalbowClient
 	Name          string
 	Type          string
 	VisitorConfig *configmap.ModbusVisitorConfig

@@ -26,15 +26,14 @@ type ModbusVisitorConfig struct {
 	IsRegisterSwap bool    `json:"isRegisterSwap,omitempty"`
 }
 
-// ModbusProtocolConfig is the protocol configuration.
-type ModbusProtocolConfig struct {
+// BowProtocolConfig is the protocol configuration.
+type BowProtocolConfig struct {
 	SlaveID int16 `json:"slaveID,omitempty"`
 }
 
-// ModbusProtocolCommonConfig is the modbus protocol configuration.
-type ModbusProtocolCommonConfig struct {
+// BowProtocolCommonConfig is the bow protocol configuration.
+type BowProtocolCommonConfig struct {
 	COM              COMStruct       `json:"com,omitempty"`
-	TCP              TCPStruct       `json:"tcp,omitempty"`
 	CustomizedValues CustomizedValue `json:"customizedValues,omitempty"`
 }
 
@@ -48,10 +47,4 @@ type COMStruct struct {
 	DataBits   int64  `json:"dataBits"`
 	Parity     string `json:"parity"`
 	StopBits   int64  `json:"stopBits"`
-}
-
-// TCPStruct is the TCP configuration.
-type TCPStruct struct {
-	IP   string `json:"ip"`
-	Port int64  `json:"port"`
 }

@@ -72,7 +72,7 @@ function build() {
   IFS="/" read -r -a os_arch <<<"${platform}"
   local os=${os_arch[0]}
   local arch=${os_arch[1]}
-  GOOS=${os} GOARCH=${arch} CGO_ENABLED=0 go build \
+  CC=arm-linux-gnueabihf-gcc GOOS=${os} GOARCH=${arch} CGO_ENABLED=1 go build \
     -ldflags "${flags} ${ext_flags}" \
     -o "${CURR_DIR}/bin/${mapper}_${os}_${arch}" \
     "${CURR_DIR}/cmd/main.go"

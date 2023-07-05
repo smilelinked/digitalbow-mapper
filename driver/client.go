@@ -16,27 +16,24 @@ limitations under the License.
 
 package driver
 
+/*
+static float add(float *a, float *b) {
+    return *a + *b;
+}
+*/
+import "C"
 import (
 	"errors"
 	"sync"
 	"time"
 
-	"github.com/sailorvii/modbus"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
 )
 
-// ModbusTCP is the configurations of modbus TCP.
-type ModbusTCP struct {
-	SlaveID  byte
-	DeviceIP string
-	TCPPort  string
-	Timeout  time.Duration
-}
-
-// ModbusRTU is the configurations of modbus RTU.
-type ModbusRTU struct {
+// BowRTU is the configurations of modbus RTU.
+type BowRTU struct {
 	SlaveID      byte
 	SerialName   string
 	BaudRate     int
@@ -47,86 +44,90 @@ type ModbusRTU struct {
 	Timeout      time.Duration
 }
 
-// ModbusClient is the structure for modbus client.
-type ModbusClient struct {
-	Client  modbus.Client
-	Handler interface{}
-	Config  interface{}
+type Client interface {
+	Init(a, b float32) (err error)
+	Close() (err error)
+	GetStatus() interface{}
+	Execute(movements []float32, clylen []float32)
+}
 
-	mu sync.Mutex
+type BowClient struct {
+}
+
+func (bowClient BowClient) Init(a, b *float32) (err error) {
+	C.add((*C.float)(a), (*C.float)(b))
+	println("init...")
+	return nil
+}
+
+func (bowClient BowClient) Close() (err error) {
+	a := float32(1.1)
+	b := float32(1.1)
+	C.add((*C.float)(&a), (*C.float)(&b))
+	println("close...")
+	return nil
+}
+
+func (bowClient BowClient) GetStatus() interface{} {
+	a := float32(2.2)
+	b := float32(2.2)
+	C.add((*C.float)(&a), (*C.float)(&b))
+	println("get status...")
+	return nil
+}
+
+func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
+	a := float32(3.3)
+	b := float32(3.3)
+	C.add((*C.float)(&a), (*C.float)(&b))
+	println("execute...")
+}
+
+// DigitalbowClient is the structure for modbus client.
+type DigitalbowClient struct {
+	Client BowClient
+	mu     sync.Mutex
 }
 
 /*
-* In modbus RTU mode, devices could connect to one serial port on RS485. However,
+* In bow RTU mode, devices could connect to one serial port on RS485. However,
 * the serial port doesn't support paralleled visit, and for one tcp device, it also doesn't support
 * paralleled visit, so we expect one client for one port.
  */
-var clients map[string]*ModbusClient
+var clients map[string]*DigitalbowClient
 
-func newTCPClient(config ModbusTCP) *ModbusClient {
-	addr := config.DeviceIP + ":" + config.TCPPort
-	slave := addr + "/" + string(config.SlaveID)
-	if client, ok := clients[slave]; ok {
-		return client
-	}
-
+func newRTUClient(config BowRTU) *DigitalbowClient {
 	if clients == nil {
-		clients = make(map[string]*ModbusClient)
+		clients = make(map[string]*DigitalbowClient)
 	}
 
-	handler := modbus.NewTCPClientHandler(addr)
-	handler.Timeout = config.Timeout
-	handler.IdleTimeout = config.Timeout
-	handler.SlaveId = config.SlaveID
-
-	client := ModbusClient{Client: modbus.NewClient(handler), Handler: handler, Config: config}
-	clients[slave] = &client
-	return &client
-}
-
-func newRTUClient(config ModbusRTU) *ModbusClient {
 	if client, ok := clients[config.SerialName]; ok {
 		return client
 	}
 
-	if clients == nil {
-		clients = make(map[string]*ModbusClient)
-	}
-
-	handler := modbus.NewRTUClientHandler(config.SerialName)
-	handler.BaudRate = config.BaudRate
-	handler.DataBits = config.DataBits
-	handler.Parity = parity(config.Parity)
-	handler.StopBits = config.StopBits
-	handler.SlaveId = config.SlaveID
-	handler.Timeout = config.Timeout
-	handler.IdleTimeout = config.Timeout
-	handler.RS485.Enabled = config.RS485Enabled
-	client := ModbusClient{Client: modbus.NewClient(handler), Handler: handler, Config: config}
+	client := DigitalbowClient{}
 	clients[config.SerialName] = &client
 	return &client
 }
 
 // NewClient allocate and return a modbus client.
 // Client type includes TCP and RTU.
-func NewClient(config interface{}) (*ModbusClient, error) {
+func NewClient(config interface{}) (*DigitalbowClient, error) {
 	switch c := config.(type) {
-	case ModbusTCP:
-		return newTCPClient(c), nil
-	case ModbusRTU:
+	case BowRTU:
 		return newRTUClient(c), nil
 	default:
-		return &ModbusClient{}, errors.New("Wrong modbus type")
+		return &DigitalbowClient{}, errors.New("Wrong modbus type")
 	}
 }
 
 // GetStatus get device status.
 // Now we could only get the connection status.
-func (c *ModbusClient) GetStatus() string {
+func (c *DigitalbowClient) GetStatus() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	err := c.Client.Connect()
+	err := c.Client.GetStatus()
 	if err == nil {
 		return common.DEVSTOK
 	}
@@ -134,50 +135,21 @@ func (c *ModbusClient) GetStatus() string {
 }
 
 // Get get register.
-func (c *ModbusClient) Get(registerType string, addr uint16, quantity uint16) (results []byte, err error) {
+func (c *DigitalbowClient) Get(registerType string, addr uint16, quantity uint16) (results []byte, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	switch registerType {
-	case "CoilRegister":
-		results, err = c.Client.ReadCoils(addr, quantity)
-	case "DiscreteInputRegister":
-		results, err = c.Client.ReadDiscreteInputs(addr, quantity)
-	case "HoldingRegister":
-		results, err = c.Client.ReadHoldingRegisters(addr, quantity)
-	case "InputRegister":
-		results, err = c.Client.ReadInputRegisters(addr, quantity)
-	default:
-		return nil, errors.New("Bad register type")
-	}
 	klog.V(2).Info("Get result: ", results)
 	return results, err
 }
 
 // Set set register.
-func (c *ModbusClient) Set(registerType string, addr uint16, value uint16) (results []byte, err error) {
+func (c *DigitalbowClient) Set(registerType string, addr uint16, value uint16) (results []byte, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	klog.V(1).Info("Set:", registerType, addr, value)
 
-	switch registerType {
-	case "CoilRegister":
-		var valueSet uint16
-		switch value {
-		case 0:
-			valueSet = 0x0000
-		case 1:
-			valueSet = 0xFF00
-		default:
-			return nil, errors.New("Wrong value")
-		}
-		results, err = c.Client.WriteSingleCoil(addr, valueSet)
-	case "HoldingRegister":
-		results, err = c.Client.WriteSingleRegister(addr, value)
-	default:
-		return nil, errors.New("Bad register type")
-	}
 	klog.V(1).Info("Set result:", err, results)
 	return results, err
 }

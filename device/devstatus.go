@@ -20,13 +20,13 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/kubeedge/mappers-go/mappers/modbus/driver"
-	"github.com/kubeedge/mappers-go/mappers/modbus/globals"
+	"github.com/smilelinkd/digitalbow-mapper/driver"
+	"github.com/smilelinkd/digitalbow-mapper/globals"
 )
 
 // GetStatus is the timer structure for getting device status.
 type GetStatus struct {
-	Client *driver.ModbusClient
+	Client *driver.DigitalbowClient
 	Status string
 	topic  string
 }

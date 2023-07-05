@@ -24,7 +24,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/kubeedge/mappers-go/mappers/modbus/globals"
+	"github.com/smilelinkd/digitalbow-mapper/globals"
 )
 
 // Parse parse the configmap.

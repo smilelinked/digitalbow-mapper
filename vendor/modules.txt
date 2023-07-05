@@ -8,26 +8,15 @@ github.com/eclipse/paho.mqtt.golang/packets
 # github.com/go-logr/logr v1.2.0
 ## explicit; go 1.16
 github.com/go-logr/logr
-# github.com/goburrow/serial v0.1.0
-## explicit
-github.com/goburrow/serial
 # github.com/gorilla/websocket v1.4.2
 ## explicit; go 1.12
 github.com/gorilla/websocket
 # github.com/kubeedge/mappers-go v1.13.0
 ## explicit; go 1.17
 github.com/kubeedge/mappers-go/mappers/common
-github.com/kubeedge/mappers-go/mappers/modbus/config
-github.com/kubeedge/mappers-go/mappers/modbus/configmap
-github.com/kubeedge/mappers-go/mappers/modbus/device
-github.com/kubeedge/mappers-go/mappers/modbus/driver
-github.com/kubeedge/mappers-go/mappers/modbus/globals
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/sailorvii/modbus v0.1.2
-## explicit
-github.com/sailorvii/modbus
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
