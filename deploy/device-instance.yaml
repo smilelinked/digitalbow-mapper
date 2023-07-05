@@ -1,0 +1,41 @@
+apiVersion: devices.kubeedge.io/v1alpha2
+kind: Device
+metadata:
+  name: digitalbow-device
+  labels:
+    description: digitalbow-device-instance
+    manufacturer: Smilelink
+    model: digitalbow-model
+spec:
+  deviceModelRef:
+    name: digitalbow-model
+  protocol:
+    modbus:
+      slaveID: 1
+    common:
+      com:
+        serialPort: '/dev/ttyS0'
+        baudRate: 9600
+        dataBits: 8
+        parity: even
+        stopBits: 1
+      customizedValues:
+        serialType: "RS232"
+  nodeSelector:
+    nodeSelectorTerms:
+      - matchExpressions:
+          - key: ''
+            operator: In
+            values:
+              - pi
+status:
+  twins:
+    - propertyName: device-status
+      reported:
+        metadata:
+          type: string
+        value: ''
+      desired:
+        metadata:
+          type: string
+        value: ''
