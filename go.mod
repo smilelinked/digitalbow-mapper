@@ -1,6 +1,6 @@
 module github.com/smilelinkd/digitalbow-mapper
 
-go 1.18
+go 1.16
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.2
@@ -11,17 +11,40 @@ require (
 	k8s.io/klog/v2 v2.100.1
 )
 
-require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.2.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
-
 replace (
 	github.com/kubeedge/beehive v0.0.0 => github.com/kubeedge/beehive v1.7.0
 	github.com/kubeedge/viaduct v0.0.0 => github.com/kubeedge/viaduct v0.0.0-20201130063818-e33931917980
+	k8s.io/api v0.0.0 => k8s.io/api v0.19.3
+	k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/apiextensions-apiserver v0.19.3
+	k8s.io/apimachinery v0.0.0 => k8s.io/apimachinery v0.19.3
+	k8s.io/apiserver v0.0.0 => k8s.io/apiserver v0.19.3
+	k8s.io/cli-runtime v0.0.0 => k8s.io/cli-runtime v0.19.3
+	k8s.io/client-go v0.0.0 => k8s.io/client-go v0.19.3
+	k8s.io/cloud-provider v0.0.0 => k8s.io/cloud-provider v0.19.3
+	k8s.io/cluster-bootstrap v0.0.0 => k8s.io/cluster-bootstrap v0.19.3
+	k8s.io/code-generator v0.0.0 => k8s.io/code-generator v0.19.3
+	k8s.io/component-base v0.0.0 => k8s.io/component-base v0.19.3
+	k8s.io/component-helpers v0.0.0 => k8s.io/component-helpers v0.22.6
+	k8s.io/controller-manager v0.0.0 => k8s.io/controller-manager v0.22.6
+	k8s.io/cri-api v0.0.0 => k8s.io/cri-api v0.19.3
+	k8s.io/csi-api v0.0.0 => k8s.io/csi-api v0.19.3
+	k8s.io/csi-translation-lib v0.0.0 => k8s.io/csi-translation-lib v0.19.3
+	k8s.io/gengo v0.0.0 => k8s.io/gengo v0.19.3
+	k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1 // indirect
+	k8s.io/kube-aggregator v0.0.0 => k8s.io/kube-aggregator v0.19.3
+	k8s.io/kube-controller-manager v0.0.0 => k8s.io/kube-controller-manager v0.19.3
+	k8s.io/kube-openapi v0.0.0 => k8s.io/kube-openapi v0.19.3
+	k8s.io/kube-proxy v0.0.0 => k8s.io/kube-proxy v0.19.3
+	k8s.io/kube-scheduler v0.0.0 => k8s.io/kube-scheduler v0.19.3
+	k8s.io/kubectl => k8s.io/kubectl v0.19.3
+	k8s.io/kubelet v0.0.0 => k8s.io/kubelet v0.19.3
+	k8s.io/legacy-cloud-providers v0.0.0 => k8s.io/legacy-cloud-providers v0.19.3
+	k8s.io/metrics v0.0.0 => k8s.io/metrics v0.19.3
+	k8s.io/mount-utils v0.0.0 => k8s.io/mount-utils v0.22.6
+	k8s.io/node-api v0.0.0 => k8s.io/node-api v0.19.3
+	k8s.io/pod-security-admission v0.0.0 => k8s.io/pod-security-admission v0.22.6
+	k8s.io/repo-infra v0.0.0 => k8s.io/repo-infra v0.19.3
+	k8s.io/sample-apiserver v0.0.0 => k8s.io/sample-apiserver v0.19.3
+	k8s.io/utils v0.0.0 => k8s.io/utils v0.19.3
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.0 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.27
 )
