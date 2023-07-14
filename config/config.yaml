@@ -3,4 +3,4 @@ mqtt:
   username: ""
   password: ""
   certification: ""
-configmap: /Users/xialingming/go/src/github.com/kubeedge/mappers-go/mappers/modbus/configmap/configmap_negtest.json
+configmap: /Users/xialingming/go/src/github.com/smilelinkd/digitalbow-mapper/configmap/configmap_negtest.json

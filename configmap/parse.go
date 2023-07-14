@@ -57,7 +57,7 @@ func Parse(path string,
 			return err
 		}
 
-		if instance.PProtocol.Protocol != "modbus" {
+		if instance.PProtocol.Protocol != "customized-protocol" {
 			continue
 		}
 

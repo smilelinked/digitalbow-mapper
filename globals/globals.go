@@ -23,8 +23,8 @@ import (
 
 // ModbusDev is the modbus device configuration and client information.
 type ModbusDev struct {
-	Instance     common.DeviceInstance
-	ModbusClient *driver.DigitalbowClient
+	Instance         common.DeviceInstance
+	DigitalbowClient *driver.DigitalbowClient
 }
 
 var MqttClient common.MqttClient

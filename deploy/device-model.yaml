@@ -1,8 +1,8 @@
 apiVersion: devices.kubeedge.io/v1alpha2
 kind: DeviceModel
 metadata:
- name: digitalbow-model
- namespace: teethlink
+ name: digitalbow
+ namespace: default
 spec:
  properties:
   - name: device-status
@@ -11,16 +11,4 @@ spec:
      string:
       accessMode: ReadWrite
       defaultValue: 'Ready'
-  - name: device-lock
-    description: Enable This Device or Not
-    type:
-      int:
-        accessMode: ReadOnly
-        defaultValue: 1
-  - name: result-path
-    description: Indicates the result path in S3
-    type:
-      string:
-        accessMode: ReadOnly
-        defaultValue: 'obs://smilelink-prod/engineer/95414313170240278/digitalbow/144/result.json'
 

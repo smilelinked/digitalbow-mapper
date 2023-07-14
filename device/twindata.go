@@ -21,24 +21,21 @@ import (
 	"errors"
 	"math"
 	"strconv"
-	"strings"
 
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
-	"github.com/smilelinkd/digitalbow-mapper/configmap"
 	"github.com/smilelinkd/digitalbow-mapper/driver"
 	"github.com/smilelinkd/digitalbow-mapper/globals"
 )
 
 // TwinData is the timer structure for getting twin/data.
 type TwinData struct {
-	Client        *driver.DigitalbowClient
-	Name          string
-	Type          string
-	VisitorConfig *configmap.ModbusVisitorConfig
-	Results       []byte
-	Topic         string
+	Client  *driver.DigitalbowClient
+	Name    string
+	Type    string
+	Results string
+	Topic   string
 }
 
 func SwitchRegister(value []byte) []byte {
@@ -122,33 +119,17 @@ func TransferData(isRegisterSwap bool, isSwap bool,
 // Run timer function.
 func (td *TwinData) Run() {
 	var err error
-	td.Results, err = td.Client.Get(td.VisitorConfig.Register, td.VisitorConfig.Offset, uint16(td.VisitorConfig.Limit))
-	if err != nil {
-		klog.Errorf("Get register failed: %v", err)
-		return
-	}
-	// transfer data according to the dpl configuration
-	sData, err := TransferData(td.VisitorConfig.IsRegisterSwap,
-		td.VisitorConfig.IsSwap, td.Type, td.VisitorConfig.Scale, td.Results)
-	if err != nil {
-		klog.Error("Transfer Data failed: ", err)
-		return
-	}
+	td.Results = td.Client.GetStatus()
 	// construct payload
 	var payload []byte
-	if strings.Contains(td.Topic, "$hw") {
-		if payload, err = common.CreateMessageTwinUpdate(td.Name, td.Type, sData); err != nil {
-			klog.Error("Create message twin update failed")
-			return
-		}
-	} else {
-		if payload, err = common.CreateMessageData(td.Name, td.Type, sData); err != nil {
-			klog.Error("Create message data failed")
-			return
-		}
+
+	if payload, err = common.CreateMessageTwinUpdate(td.Name, td.Type, td.Results); err != nil {
+		klog.Error("Create message twin update failed")
+		return
 	}
+
 	if err = globals.MqttClient.Publish(td.Topic, payload); err != nil {
 		klog.Errorf("Publish topic %v failed, err: %v", td.Topic, err)
 	}
-	klog.V(2).Infof("Get the %s value as %s", td.Name, sData)
+	klog.V(2).Infof("Get the %s value as %s", td.Name, td.Results)
 }

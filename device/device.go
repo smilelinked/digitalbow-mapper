@@ -111,7 +111,7 @@ func onMessage(client mqtt.Client, message mqtt.Message) {
 			klog.Errorf("Unmarshal visitor config failed: %v", err)
 			continue
 		}
-		setVisitor(&visitorConfig, &dev.Instance.Twins[i], dev.ModbusClient)
+		setVisitor(&visitorConfig, &dev.Instance.Twins[i], dev.DigitalbowClient)
 	}
 }
 
@@ -130,9 +130,9 @@ func isRS485Enabled(customizedValue configmap.CustomizedValue) bool {
 }
 
 // initBow initialize bow client
-func initBow(protocolConfig configmap.BowProtocolCommonConfig, slaveID int16) (client *driver.DigitalbowClient, err error) {
+func initBow(protocolConfig configmap.BowProtocolCommonConfig) (client *driver.DigitalbowClient, err error) {
 	if protocolConfig.COM.SerialPort != "" {
-		modbusRTU := driver.BowRTU{SlaveID: byte(slaveID),
+		RTUConfig := driver.BowRTUConfig{
 			SerialName:   protocolConfig.COM.SerialPort,
 			BaudRate:     int(protocolConfig.COM.BaudRate),
 			DataBits:     int(protocolConfig.COM.DataBits),
@@ -140,7 +140,7 @@ func initBow(protocolConfig configmap.BowProtocolCommonConfig, slaveID int16) (c
 			Parity:       protocolConfig.COM.Parity,
 			RS485Enabled: isRS485Enabled(protocolConfig.CustomizedValues),
 			Timeout:      5 * time.Second}
-		client, _ = driver.NewClient(modbusRTU)
+		client, _ = driver.NewClient(RTUConfig)
 	} else {
 		return nil, errors.New("No protocol found")
 	}
@@ -150,18 +150,11 @@ func initBow(protocolConfig configmap.BowProtocolCommonConfig, slaveID int16) (c
 // initTwin initialize the timer to get twin value.
 func initTwin(dev *globals.ModbusDev) {
 	for i := 0; i < len(dev.Instance.Twins); i++ {
-		var visitorConfig configmap.ModbusVisitorConfig
-		if err := json.Unmarshal([]byte(dev.Instance.Twins[i].PVisitor.VisitorConfig), &visitorConfig); err != nil {
-			klog.Errorf("Unmarshal VisitorConfig error: %v", err)
-			continue
-		}
-		setVisitor(&visitorConfig, &dev.Instance.Twins[i], dev.ModbusClient)
 
-		twinData := TwinData{Client: dev.ModbusClient,
-			Name:          dev.Instance.Twins[i].PropertyName,
-			Type:          dev.Instance.Twins[i].Desired.Metadatas.Type,
-			VisitorConfig: &visitorConfig,
-			Topic:         fmt.Sprintf(common.TopicTwinUpdate, dev.Instance.ID)}
+		twinData := TwinData{Client: dev.DigitalbowClient,
+			Name:  dev.Instance.Twins[i].PropertyName,
+			Type:  dev.Instance.Twins[i].Desired.Metadatas.Type,
+			Topic: fmt.Sprintf(common.TopicTwinUpdate, dev.Instance.ID)}
 		collectCycle := time.Duration(dev.Instance.Twins[i].PVisitor.CollectCycle)
 		// If the collect cycle is not set, set it to 1 second.
 		if collectCycle == 0 {
@@ -184,11 +177,10 @@ func initData(dev *globals.ModbusDev) {
 			klog.Errorf("Unmarshal VisitorConfig error: %v", err)
 			continue
 		}
-		twinData := TwinData{Client: dev.ModbusClient,
-			Name:          dev.Instance.Datas.Properties[i].PropertyName,
-			Type:          dev.Instance.Datas.Properties[i].Metadatas.Type,
-			VisitorConfig: &visitorConfig,
-			Topic:         fmt.Sprintf(common.TopicDataUpdate, dev.Instance.ID)}
+		twinData := TwinData{Client: dev.DigitalbowClient,
+			Name:  dev.Instance.Datas.Properties[i].PropertyName,
+			Type:  dev.Instance.Datas.Properties[i].Metadatas.Type,
+			Topic: fmt.Sprintf(common.TopicDataUpdate, dev.Instance.ID)}
 		collectCycle := time.Duration(dev.Instance.Datas.Properties[i].PVisitor.CollectCycle)
 		// If the collect cycle is not set, set it to 1 second.
 		if collectCycle == 0 {
@@ -212,7 +204,7 @@ func initSubscribeMqtt(instanceID string) error {
 
 // initGetStatus start timer to get device status and send to eventbus.
 func initGetStatus(dev *globals.ModbusDev) {
-	getStatus := GetStatus{Client: dev.ModbusClient,
+	getStatus := GetStatus{Client: dev.DigitalbowClient,
 		topic: fmt.Sprintf(common.TopicStateUpdate, dev.Instance.ID)}
 	timer := common.Timer{Function: getStatus.Run, Duration: 1 * time.Second, Times: 0}
 	wg.Add(1)
@@ -222,7 +214,7 @@ func initGetStatus(dev *globals.ModbusDev) {
 	}()
 }
 
-// start start the device.
+// start the device.
 func start(dev *globals.ModbusDev) {
 	var protocolCommConfig configmap.BowProtocolCommonConfig
 	if err := json.Unmarshal([]byte(dev.Instance.PProtocol.ProtocolCommonConfig), &protocolCommConfig); err != nil {
@@ -230,18 +222,12 @@ func start(dev *globals.ModbusDev) {
 		return
 	}
 
-	var protocolConfig configmap.BowProtocolConfig
-	if err := json.Unmarshal([]byte(dev.Instance.PProtocol.ProtocolConfigs), &protocolConfig); err != nil {
-		klog.Errorf("Unmarshal ProtocolConfigs error: %v", err)
-		return
-	}
-
-	client, err := initBow(protocolCommConfig, protocolConfig.SlaveID)
+	client, err := initBow(protocolCommConfig)
 	if err != nil {
 		klog.Errorf("Init error: %v", err)
 		return
 	}
-	dev.ModbusClient = client
+	dev.DigitalbowClient = client
 
 	initTwin(dev)
 	initData(dev)
@@ -254,7 +240,7 @@ func start(dev *globals.ModbusDev) {
 	initGetStatus(dev)
 }
 
-// DevInit initialize the device datas.
+// DevInit initialize the device data.
 func DevInit(configmapPath string) error {
 	devices = make(map[string]*globals.ModbusDev)
 	models = make(map[string]common.DeviceModel)

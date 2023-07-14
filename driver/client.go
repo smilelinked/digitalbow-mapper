@@ -23,18 +23,19 @@ static float add(float *a, float *b) {
 */
 import "C"
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"k8s.io/klog/v2"
 
-	"github.com/kubeedge/mappers-go/mappers/common"
+	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 )
 
-// BowRTU is the configurations of modbus RTU.
-type BowRTU struct {
-	SlaveID      byte
+// BowRTUConfig is the configurations of modbus RTU.
+type BowRTUConfig struct {
 	SerialName   string
 	BaudRate     int
 	DataBits     int
@@ -42,6 +43,15 @@ type BowRTU struct {
 	Parity       string
 	RS485Enabled bool
 	Timeout      time.Duration
+}
+
+type trackData struct {
+	Size       int             `json:"size"`
+	Frequency  int             `json:"frequency"`
+	MatrixList [][4][4]float32 `json:"Matrix_list"`
+	IPList     [][3]float32    `json:"IP_list"`
+	LCList     [][3]float32    `json:"LC_list"`
+	RCList     [][3]float32    `json:"RC_list"`
 }
 
 type Client interface {
@@ -52,6 +62,7 @@ type Client interface {
 }
 
 type BowClient struct {
+	Config BowRTUConfig
 }
 
 func (bowClient BowClient) Init(a, b *float32) (err error) {
@@ -85,8 +96,10 @@ func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
 
 // DigitalbowClient is the structure for modbus client.
 type DigitalbowClient struct {
-	Client BowClient
-	mu     sync.Mutex
+	Client    BowClient
+	Status    string
+	Movements map[string]trackData
+	mu        sync.Mutex
 }
 
 /*
@@ -96,7 +109,7 @@ type DigitalbowClient struct {
  */
 var clients map[string]*DigitalbowClient
 
-func newRTUClient(config BowRTU) *DigitalbowClient {
+func newRTUClient(config BowRTUConfig) *DigitalbowClient {
 	if clients == nil {
 		clients = make(map[string]*DigitalbowClient)
 	}
@@ -105,7 +118,13 @@ func newRTUClient(config BowRTU) *DigitalbowClient {
 		return client
 	}
 
-	client := DigitalbowClient{}
+	client := DigitalbowClient{
+		Status: "Ready",
+		Client: BowClient{
+			Config: config,
+		},
+	}
+
 	clients[config.SerialName] = &client
 	return &client
 }
@@ -114,10 +133,10 @@ func newRTUClient(config BowRTU) *DigitalbowClient {
 // Client type includes TCP and RTU.
 func NewClient(config interface{}) (*DigitalbowClient, error) {
 	switch c := config.(type) {
-	case BowRTU:
+	case BowRTUConfig:
 		return newRTUClient(c), nil
 	default:
-		return &DigitalbowClient{}, errors.New("Wrong modbus type")
+		return &DigitalbowClient{}, errors.New("Wrong type")
 	}
 }
 
@@ -126,12 +145,64 @@ func NewClient(config interface{}) (*DigitalbowClient, error) {
 func (c *DigitalbowClient) GetStatus() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	return c.Status
+}
 
-	err := c.Client.GetStatus()
-	if err == nil {
-		return common.DEVSTOK
+func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
+	c.mu.Lock()
+	c.Status = "Syncing"
+	c.mu.Unlock()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var movement trackData
+	obsConfig := GetObs()
+	obsClient, err := obs.New(obsConfig["AK"], obsConfig["SK"], obsConfig["URI"])
+	if err != nil {
+		return err
 	}
-	return common.DEVSTDISCONN
+	input := &obs.GetObjectInput{}
+	input.Bucket = obsConfig["NAME"]
+	input.Key = fmt.Sprintf("%s/%s_track.json", path, segment)
+	content := make([]byte, 0)
+	output, err := obsClient.GetObject(input)
+	if err == nil {
+		// output.Body 在使用完毕后必须关闭，否则会造成连接泄漏。
+		defer output.Body.Close()
+		fmt.Printf("Get object(%s) under the bucket(%s) successful!\n", input.Key, input.Bucket)
+		fmt.Printf("StorageClass:%s, ETag:%s, ContentType:%s, ContentLength:%d, LastModified:%s\n",
+			output.StorageClass, output.ETag, output.ContentType, output.ContentLength, output.LastModified)
+		// 读取对象内容
+		p := make([]byte, 1024)
+		var readErr error
+		var readCount int
+		for {
+			readCount, readErr = output.Body.Read(p)
+			if readCount > 0 {
+				content = append(content, p[:readCount]...)
+			}
+			if readErr != nil {
+				break
+			}
+		}
+	}
+
+	if obsError, ok := err.(obs.ObsError); ok {
+		fmt.Println("An ObsError was found, which means your request sent to OBS was rejected with an error response.")
+		fmt.Println(obsError.Error())
+	} else {
+		fmt.Println("An Exception was found, which means the client encountered an internal problem when attempting to communicate with OBS, for example, the client was unable to access the network.")
+		fmt.Println(err)
+	}
+	err = json.Unmarshal(content, &movement)
+	if err != nil {
+		fmt.Println("unmarshall error", err.Error())
+		return
+	}
+	defer obsClient.Close()
+	c.Movements[segment] = movement
+	c.Status = "Ready"
+	return nil
 }
 
 // Get get register.
@@ -154,16 +225,16 @@ func (c *DigitalbowClient) Set(registerType string, addr uint16, value uint16) (
 	return results, err
 }
 
-// parity convert into the format that modbus driver requires.
-func parity(ori string) string {
-	var p string
-	switch ori {
-	case "even":
-		p = "E"
-	case "odd":
-		p = "O"
-	default:
-		p = "N"
-	}
-	return p
-}
+//// parity convert into the format that modbus driver requires.
+//func parity(ori string) string {
+//	var p string
+//	switch ori {
+//	case "even":
+//		p = "E"
+//	case "odd":
+//		p = "O"
+//	default:
+//		p = "N"
+//	}
+//	return p
+//}

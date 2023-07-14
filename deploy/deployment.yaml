@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: modbus-mapper
+  name: digitalbow
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: modbusmapper
+      app: digitalbow
   template:
     metadata:
       labels:
-        app: modbusmapper
+        app: digitalbow
     spec:
       hostNetwork: true
       containers:
-      - name: modbus-mapper-container
-        image: modbusmapper:v1.0
+      - name: digitalbow-container
+        image: lmxia/digitalbow:v1.0
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
@@ -27,11 +27,11 @@ spec:
         - mountPath: /dev/ttyS1
           name: modbus-dev1
       nodeSelector:
-        modbus: "true"
+        kubernetes.io/hostname: "pi"
       volumes:
       - name: config-volume
         configMap:
-          name: device-profile-config-test
+          name: device-profile-config-pi
       - name: modbus-dev0
         hostPath:
           path: /dev/ttyS0
