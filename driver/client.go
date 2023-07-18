@@ -55,7 +55,7 @@ type trackData struct {
 }
 
 type Client interface {
-	Init(a, b float32) (err error)
+	Init(a, b *float32) (err error)
 	Close() (err error)
 	GetStatus() interface{}
 	Execute(movements []float32, clylen []float32)
@@ -123,6 +123,7 @@ func newRTUClient(config BowRTUConfig) *DigitalbowClient {
 		Client: BowClient{
 			Config: config,
 		},
+		Movements: make(map[string]trackData, 0),
 	}
 
 	clients[config.SerialName] = &client
@@ -149,12 +150,7 @@ func (c *DigitalbowClient) GetStatus() string {
 }
 
 func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
-	c.mu.Lock()
 	c.Status = "Syncing"
-	c.mu.Unlock()
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var movement trackData
 	obsConfig := GetObs()
 	obsClient, err := obs.New(obsConfig["AK"], obsConfig["SK"], obsConfig["URI"])
@@ -190,9 +186,7 @@ func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
 	if obsError, ok := err.(obs.ObsError); ok {
 		fmt.Println("An ObsError was found, which means your request sent to OBS was rejected with an error response.")
 		fmt.Println(obsError.Error())
-	} else {
-		fmt.Println("An Exception was found, which means the client encountered an internal problem when attempting to communicate with OBS, for example, the client was unable to access the network.")
-		fmt.Println(err)
+		return
 	}
 	err = json.Unmarshal(content, &movement)
 	if err != nil {
@@ -201,6 +195,8 @@ func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
 	}
 	defer obsClient.Close()
 	c.Movements[segment] = movement
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.Status = "Ready"
 	return nil
 }

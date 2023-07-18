@@ -1,0 +1,9 @@
+apiVersion: rules.kubeedge.io/v1
+kind: RuleEndpoint
+metadata:
+  name: source-in-cloud
+  labels:
+    description: cloud-endpoint
+spec:
+  ruleEndpointType: "rest"
+  properties: {}

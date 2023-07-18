@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.2
+	github.com/gorilla/mux v1.8.0
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.23.4+incompatible
 	github.com/kubeedge/mappers-go v1.13.0
 	github.com/spf13/pflag v1.0.5

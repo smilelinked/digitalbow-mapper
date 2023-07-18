@@ -25,6 +25,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/smilelinkd/digitalbow-mapper/pkg"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/mappers-go/mappers/common"
@@ -248,11 +249,23 @@ func DevInit(configmapPath string) error {
 	return configmap.Parse(configmapPath, devices, models, protocols)
 }
 
+var clientInit sync.Once
+
 // DevStart start all devices.
 func DevStart() {
 	for id, dev := range devices {
 		klog.V(4).Info("Dev: ", id, dev)
 		start(dev)
+		clientInit.Do(func() {
+			if dev.DigitalbowClient != nil {
+				httpClient := pkg.NewHTTPClient(dev.DigitalbowClient)
+				err := httpClient.Init()
+				if err != nil {
+					klog.Errorf("Failed to start Http server:%v", err)
+				}
+			}
+		})
 	}
+
 	wg.Wait()
 }

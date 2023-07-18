@@ -1,0 +1,11 @@
+apiVersion: rules.kubeedge.io/v1
+kind: Rule
+metadata:
+  name: rule-servicebus
+  labels:
+    description: cloud-rest-end-servicebus
+spec:
+  source: "source-in-cloud"
+  sourceResource: {"path":"/download"}
+  target: "target-in-edge"
+  targetResource: {"path":"/api/v1/download"}

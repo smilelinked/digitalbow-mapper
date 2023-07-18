@@ -1,0 +1,9 @@
+apiVersion: rules.kubeedge.io/v1
+kind: RuleEndpoint
+metadata:
+  name: target-in-edge
+  labels:
+    description: edge-endpoint
+spec:
+  ruleEndpointType: "servicebus"
+  properties: {"service_port":"6666"}
