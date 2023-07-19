@@ -16,11 +16,10 @@ limitations under the License.
 
 package driver
 
-/*
-static float add(float *a, float *b) {
-    return *a + *b;
-}
-*/
+//#cgo CFLAGS: -I./number
+//#cgo LDFLAGS: -L${SRCDIR}/number -lnumber
+//
+//#include "number.h"
 import "C"
 import (
 	"encoding/json"
@@ -66,32 +65,30 @@ type BowClient struct {
 }
 
 func (bowClient BowClient) Init(a, b *float32) (err error) {
-	C.add((*C.float)(a), (*C.float)(b))
+	//C.add((*C.float)(a), (*C.float)(b))
 	println("init...")
 	return nil
 }
 
 func (bowClient BowClient) Close() (err error) {
-	a := float32(1.1)
-	b := float32(1.1)
-	C.add((*C.float)(&a), (*C.float)(&b))
+	//a := float32(1.1)
+	//b := float32(1.1)
+	//C.add((*C.float)(&a), (*C.float)(&b))
 	println("close...")
 	return nil
 }
 
 func (bowClient BowClient) GetStatus() interface{} {
-	a := float32(2.2)
-	b := float32(2.2)
-	C.add((*C.float)(&a), (*C.float)(&b))
+	//a := float32(2.2)
+	//b := float32(2.2)
+	////C.add((*C.float)(&a), (*C.float)(&b))
 	println("get status...")
 	return nil
 }
 
 func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
-	a := float32(3.3)
-	b := float32(3.3)
-	C.add((*C.float)(&a), (*C.float)(&b))
-	println("execute...")
+	result := C.number_add_mod(10, 5, 12)
+	klog.V(1).Infof("execute result is %f...", result)
 }
 
 // DigitalbowClient is the structure for modbus client.

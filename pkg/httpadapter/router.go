@@ -35,6 +35,7 @@ func (c *RestController) InitRestRoutes() {
 	// common
 	c.addReservedRoute(common.APIPingRoute, c.Ping).Methods(http.MethodGet)
 	c.addReservedRoute(common.APIDeviceDownload, c.Download).Methods(http.MethodPost)
+	c.addReservedRoute(common.APIDeviceExecute, c.Execute).Methods(http.MethodPost)
 }
 
 func (c *RestController) addReservedRoute(route string, handler func(http.ResponseWriter, *http.Request)) *mux.Route {

@@ -37,3 +37,7 @@ type DownloadRequest struct {
 	Path    string `json:"path"`
 	Segment string `json:"segment"`
 }
+
+type ExecuteRequest struct {
+	Segment string `json:"segment"`
+}

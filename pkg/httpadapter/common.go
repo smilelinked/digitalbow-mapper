@@ -35,3 +35,16 @@ func (c *RestController) Download(writer http.ResponseWriter, request *http.Requ
 	}
 	c.sendResponse(writer, request, common.APIDeviceDownload, response, http.StatusOK)
 }
+
+func (c *RestController) Execute(writer http.ResponseWriter, request *http.Request) {
+	response := "This is API " + common.APIVersion + ". Now is " + time.Now().Format(time.UnixDate)
+	var downResultRequest configmap.ExecuteRequest
+	err := json.NewDecoder(request.Body).Decode(&downResultRequest)
+	if err != nil {
+		klog.Error("Bad request, failed to decode JSON: ", err)
+		c.sendMapperError(writer, request, err.Error(), common.APIDeviceExecute)
+		return
+	}
+	c.Client.Client.Execute(nil, nil)
+	c.sendResponse(writer, request, common.APIDeviceExecute, response, http.StatusOK)
+}

@@ -33,7 +33,7 @@ const (
 	APIBase           = "/api/v1"
 	APIDeviceDownload = APIBase + "/download"
 	// APIDeviceCallbackIDRoute to build update device's RESTful API
-	APIDeviceCallbackIDRoute = APIBase + "/callback/device/id/{id}"
+	APIDeviceExecute = APIBase + "/execute"
 
 	// APIPingRoute to build ping command's RESTful API
 	APIPingRoute = APIBase + "/ping"
