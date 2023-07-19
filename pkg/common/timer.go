@@ -17,7 +17,7 @@ func (t *Timer) Start() {
 	ticker := time.NewTicker(t.Duration)
 	if t.Times > 0 {
 		for i := 0; i < t.Times; i++ {
-			if t.stopFlag == true {
+			if t.stopFlag {
 				break
 			}
 			<-ticker.C
@@ -25,7 +25,7 @@ func (t *Timer) Start() {
 		}
 	} else {
 		for range ticker.C {
-			if t.stopFlag == true {
+			if t.stopFlag {
 				break
 			}
 			t.Function()
