@@ -1,3 +1,4 @@
+---
 apiVersion: rules.kubeedge.io/v1
 kind: Rule
 metadata:
@@ -9,3 +10,15 @@ spec:
   sourceResource: {"path":"/download"}
   target: "target-in-edge"
   targetResource: {"path":"/api/v1/download"}
+---
+apiVersion: rules.kubeedge.io/v1
+kind: Rule
+metadata:
+  name: rule-servicebus-execute
+  labels:
+    description: cloud-rest-end-servicebus
+spec:
+  source: "source-in-cloud"
+  sourceResource: {"path":"/execute"}
+  target: "target-in-edge"
+  targetResource: {"path":"/api/v1/execute"}
