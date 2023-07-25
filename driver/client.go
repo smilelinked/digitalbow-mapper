@@ -17,8 +17,11 @@ limitations under the License.
 package driver
 
 //#cgo CFLAGS: -I./number
-//#cgo LDFLAGS: -L${SRCDIR}/number -lSixDof
+//#cgo LDFLAGS: -L${SRCDIR}/number -lSixDof -lm
 //
+//#include<stdio.h>
+//#include<stdlib.h>
+//#include<math.h>
 //#include "s_6dof.h"
 import "C"
 import (
