@@ -19,7 +19,7 @@ package driver
 //#cgo CFLAGS: -I./number
 //#cgo LDFLAGS: -L${SRCDIR}/number -lSum
 //
-//#include "number.h"
+//#include "Sum.h"
 import "C"
 import (
 	"encoding/json"
@@ -89,7 +89,7 @@ func (bowClient BowClient) GetStatus() interface{} {
 func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
 	a := float32(2.2)
 	b := float32(2.2)
-	fmt.Println(C.Sum((*C.float)(&a), (*C.float)(&b)))
+	fmt.Println(C.Sum((C.float)(a), (C.float)(b)))
 	//klog.V(1).Infof("execute result is %f...", float32(result))
 }
 
