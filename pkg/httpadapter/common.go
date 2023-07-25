@@ -64,7 +64,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 
 	c.Client.SetStatus(common.StatusExecucting)
 	go func() {
-		trackData, _ := c.Client.Movements[executeRequest.Segment]
+		trackData := c.Client.Movements[executeRequest.Segment]
 		clylen := make([]float32, 6)
 		for _, item := range trackData.MatrixList {
 			bowResult := getBowDataformat(item)
