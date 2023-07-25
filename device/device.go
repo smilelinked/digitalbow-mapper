@@ -141,7 +141,9 @@ func initBow(protocolConfig configmap.BowProtocolCommonConfig) (client *driver.D
 			Parity:       protocolConfig.COM.Parity,
 			RS485Enabled: isRS485Enabled(protocolConfig.CustomizedValues),
 			Timeout:      5 * time.Second}
+
 		client, _ = driver.NewClient(RTUConfig)
+		client.Client.Init()
 	} else {
 		return nil, errors.New("No protocol found")
 	}

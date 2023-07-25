@@ -17,9 +17,9 @@ limitations under the License.
 package driver
 
 //#cgo CFLAGS: -I./number
-//#cgo LDFLAGS: -L${SRCDIR}/number -lSum
+//#cgo LDFLAGS: -L${SRCDIR}/number -lSixDof
 //
-//#include "Sum.h"
+//#include "s_6dof.h"
 import "C"
 import (
 	"encoding/json"
@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/smilelinkd/digitalbow-mapper/pkg/common"
 	"k8s.io/klog/v2"
 
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
@@ -44,30 +45,29 @@ type BowRTUConfig struct {
 	Timeout      time.Duration
 }
 
-type trackData struct {
+type TrackData struct {
 	Size       int             `json:"size"`
 	Frequency  int             `json:"frequency"`
-	MatrixList [][4][4]float32 `json:"Matrix_list"`
-	IPList     [][3]float32    `json:"IP_list"`
-	LCList     [][3]float32    `json:"LC_list"`
-	RCList     [][3]float32    `json:"RC_list"`
+	MatrixList [][4][4]float64 `json:"Matrix_list"`
+	IPList     [][3]float64    `json:"IP_list"`
+	LCList     [][3]float64    `json:"LC_list"`
+	RCList     [][3]float64    `json:"RC_list"`
 }
 
 type Client interface {
-	Init(a, b *float32) (err error)
+	Init()
 	Close() (err error)
 	GetStatus() interface{}
-	Execute(movements []float32, clylen []float32)
+	Execute(movements []float64, clylen []float64)
 }
 
 type BowClient struct {
 	Config BowRTUConfig
 }
 
-func (bowClient BowClient) Init(a, b *float32) (err error) {
-	//C.add((*C.float)(a), (*C.float)(b))
-	println("init...")
-	return nil
+func (bowClient BowClient) Init() {
+	C.SixDOFInit()
+	fmt.Println("init success...")
 }
 
 func (bowClient BowClient) Close() (err error) {
@@ -87,17 +87,14 @@ func (bowClient BowClient) GetStatus() interface{} {
 }
 
 func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
-	a := float32(2.2)
-	b := float32(2.2)
-	fmt.Println(C.Sum((C.float)(a), (C.float)(b)))
-	//klog.V(1).Infof("execute result is %f...", float32(result))
+	C.SoluteCylinderLength((*C.float)(&movements[0]), (*C.float)(&clylen[0]))
 }
 
 // DigitalbowClient is the structure for modbus client.
 type DigitalbowClient struct {
 	Client    BowClient
-	Status    string
-	Movements map[string]trackData
+	Status    common.DeviceStatus
+	Movements map[string]TrackData
 	mu        sync.Mutex
 }
 
@@ -118,11 +115,11 @@ func newRTUClient(config BowRTUConfig) *DigitalbowClient {
 	}
 
 	client := DigitalbowClient{
-		Status: "Ready",
+		Status: common.StatusReady,
 		Client: BowClient{
 			Config: config,
 		},
-		Movements: make(map[string]trackData, 0),
+		Movements: make(map[string]TrackData, 0),
 	}
 
 	clients[config.SerialName] = &client
@@ -142,15 +139,22 @@ func NewClient(config interface{}) (*DigitalbowClient, error) {
 
 // GetStatus get device status.
 // Now we could only get the connection status.
-func (c *DigitalbowClient) GetStatus() string {
+func (c *DigitalbowClient) GetStatus() common.DeviceStatus {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.Status
 }
 
+// SetStatus set device status.
+// Now we could only get the connection status.
+func (c *DigitalbowClient) SetStatus(status common.DeviceStatus) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Status = status
+}
+
 func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
-	c.Status = "Syncing"
-	var movement trackData
+	var movement TrackData
 	obsConfig := GetObs()
 	obsClient, err := obs.New(obsConfig["AK"], obsConfig["SK"], obsConfig["URI"])
 	if err != nil {
@@ -194,9 +198,6 @@ func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
 	}
 	defer obsClient.Close()
 	c.Movements[segment] = movement
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.Status = "Ready"
 	return nil
 }
 
@@ -219,17 +220,3 @@ func (c *DigitalbowClient) Set(registerType string, addr uint16, value uint16) (
 	klog.V(1).Info("Set result:", err, results)
 	return results, err
 }
-
-//// parity convert into the format that modbus driver requires.
-//func parity(ori string) string {
-//	var p string
-//	switch ori {
-//	case "even":
-//		p = "E"
-//	case "odd":
-//		p = "O"
-//	default:
-//		p = "N"
-//	}
-//	return p
-//}

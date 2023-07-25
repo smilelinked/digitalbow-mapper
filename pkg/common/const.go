@@ -71,3 +71,11 @@ const (
 	KindOverflowError       ErrKind = "OverflowError"
 	KindNaNError            ErrKind = "NaNError"
 )
+
+type DeviceStatus string
+
+const (
+	StatusReady      DeviceStatus = "Ready"
+	StatusSyncing    DeviceStatus = "Syncing"
+	StatusExecucting DeviceStatus = "Executing"
+)
