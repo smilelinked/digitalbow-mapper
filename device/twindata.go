@@ -119,7 +119,7 @@ func TransferData(isRegisterSwap bool, isSwap bool,
 // Run timer function.
 func (td *TwinData) Run() {
 	var err error
-	td.Results = td.Client.GetStatus()
+	td.Results = string(td.Client.GetStatus())
 	// construct payload
 	var payload []byte
 

@@ -33,11 +33,11 @@ type GetStatus struct {
 
 // Run timer function.
 func (gs *GetStatus) Run() {
-	gs.Status = gs.Client.GetStatus()
+	gs.Status = string(gs.Client.GetStatus())
 
 	var payload []byte
 	var err error
-	if payload, err = common.CreateMessageState(gs.Status); err != nil {
+	if payload, err = common.CreateMessageState(string(gs.Status)); err != nil {
 		klog.Errorf("Create message state failed: %v", err)
 		return
 	}

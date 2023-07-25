@@ -28,10 +28,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/smilelinkd/digitalbow-mapper/pkg/common"
 	"k8s.io/klog/v2"
 
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
+	"github.com/smilelinkd/digitalbow-mapper/pkg/common"
 )
 
 // BowRTUConfig is the configurations of modbus RTU.
