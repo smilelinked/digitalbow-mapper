@@ -64,6 +64,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 	}
 
 	c.Client.SetStatus(common.StatusExecucting)
+	time.Sleep(100 * time.Microsecond)
 	go func() {
 		trackData := c.Client.Movements[executeRequest.Segment]
 		clylen := make([]float32, 6)

@@ -92,6 +92,7 @@ func (bowClient BowClient) GetStatus() interface{} {
 func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
 	klog.V(2).Infof("execute with %v", movements)
 	C.SoluteCylinderLength((*C.float)(&movements[0]), (*C.float)(&clylen[0]))
+	klog.V(2).Infof("execute with %v", clylen)
 }
 
 // DigitalbowClient is the structure for modbus client.
