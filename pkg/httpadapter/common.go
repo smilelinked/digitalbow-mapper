@@ -36,6 +36,7 @@ func (c *RestController) Download(writer http.ResponseWriter, request *http.Requ
 	if err != nil {
 		klog.Error("Can't download file into memory: ", err)
 		c.sendMapperError(writer, request, err.Error(), common.APIDeviceDownload)
+		c.Client.SetStatus(common.StatusReady)
 		return
 	}
 	c.Client.SetStatus(common.StatusReady)
@@ -71,7 +72,6 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 			time.Sleep(100 * time.Microsecond)
 			c.Client.Client.Execute(bowResult, clylen)
 		}
-
 	}()
 	c.Client.SetStatus(common.StatusReady)
 
