@@ -70,7 +70,7 @@ type BowClient struct {
 
 func (bowClient BowClient) Init() {
 	C.SixDOFInit()
-	fmt.Println("init success...")
+	klog.V(2).Info("init success...")
 }
 
 func (bowClient BowClient) Close() (err error) {
@@ -90,6 +90,7 @@ func (bowClient BowClient) GetStatus() interface{} {
 }
 
 func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
+	klog.V(2).Infof("execute with %v", movements)
 	C.SoluteCylinderLength((*C.float)(&movements[0]), (*C.float)(&clylen[0]))
 }
 
