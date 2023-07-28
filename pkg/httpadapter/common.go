@@ -100,6 +100,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 		} else {
 			clylen := make([]float32, 6)
 			for i := 1; i <= 10; i++ {
+				time.Sleep(7 * time.Second)
 				bowResult := randomGetCylen(i)
 				c.Client.Client.Execute(bowResult, clylen)
 				klog.V(2).Infof("execute output %v", clylen)
