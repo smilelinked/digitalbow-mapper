@@ -198,7 +198,7 @@ func assembleSerialData(moves []float32) []byte {
 		number1_2 := byte(number1)
 		number1_1 := byte(number1 >> 8)
 		b = append(b, id, number1_1, number1_2)
-		sum += i + int(byte(number1)) + int(number1_2) + int(number1_1)
+		sum += int(id) + int(number1_2) + int(number1_1)
 	}
 	b = append(b, byte(sum))
 	return b
