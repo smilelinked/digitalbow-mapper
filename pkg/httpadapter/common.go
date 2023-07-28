@@ -195,8 +195,8 @@ func randomGetCylen(i int) []float32 {
 	if i%3 == 0 {
 		return []float32{2, 0, 0, 0, 0, 0}
 	} else if i%3 == 1 {
-		return []float32{5, -5, 5, -10, 10, -10}
+		return []float32{5, 0, 5, 10, 10, 0}
 	} else {
-		return []float32{-5, 5, -5, 10, -10, 10}
+		return []float32{0, 5, 0, 0, -10, 10}
 	}
 }
