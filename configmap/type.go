@@ -40,4 +40,5 @@ type DownloadRequest struct {
 
 type ExecuteRequest struct {
 	Segment string `json:"segment"`
+	Random  bool   `json:"random"`
 }

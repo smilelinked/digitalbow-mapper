@@ -6,6 +6,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/gorilla/mux v1.8.0
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.23.4+incompatible
+	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kubeedge/mappers-go v1.13.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4

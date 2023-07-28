@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jacobsa/go-serial/serial"
 	"github.com/smilelinkd/digitalbow-mapper/configmap"
 	"github.com/smilelinkd/digitalbow-mapper/pkg/common"
 	"k8s.io/klog/v2"
@@ -58,20 +59,56 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	if _, ok := c.Client.Movements[executeRequest.Segment]; !ok {
+	if _, ok := c.Client.Movements[executeRequest.Segment]; !ok && !executeRequest.Random {
 		c.sendMapperError(writer, request, "The segment does not exist, please download first!", common.APIDeviceExecute)
 		return
 	}
 
 	c.Client.SetStatus(common.StatusExecucting)
 	time.Sleep(100 * time.Microsecond)
+
+	options := serial.OpenOptions{
+		PortName:   c.Client.Client.Config.SerialName,
+		BaudRate:   uint(c.Client.Client.Config.BaudRate),
+		DataBits:   uint(c.Client.Client.Config.DataBits),
+		StopBits:   uint(c.Client.Client.Config.StopBits),
+		ParityMode: serial.PARITY_NONE,
+	}
+
 	go func() {
-		trackData := c.Client.Movements[executeRequest.Segment]
-		clylen := make([]float32, 6)
-		for _, item := range trackData.MatrixList {
-			bowResult := getBowDataformat(item)
-			time.Sleep(100 * time.Microsecond)
-			c.Client.Client.Execute(bowResult, clylen)
+		port, err := serial.Open(options)
+		if err != nil {
+			klog.V(2).Infof("Error opening serial port... %v", err)
+			return
+		}
+		defer port.Close()
+
+		if !executeRequest.Random {
+			trackData := c.Client.Movements[executeRequest.Segment]
+			clylen := make([]float32, 6)
+			for _, item := range trackData.MatrixList {
+				bowResult := getBowDataformat(item)
+				time.Sleep(100 * time.Microsecond)
+				c.Client.Client.Execute(bowResult, clylen)
+				klog.V(2).Infof("execute with %v", clylen)
+				_, err := port.Write(assembleSerialData(clylen))
+				if err != nil {
+					klog.Errorf("Error writing to serial port:%v ", err)
+					return
+				}
+			}
+		} else {
+			clylen := make([]float32, 6)
+			for i := 1; i <= 10; i++ {
+				bowResult := randomGetCylen(i)
+				c.Client.Client.Execute(bowResult, clylen)
+				klog.V(2).Infof("execute output %v", clylen)
+				_, err := port.Write(assembleSerialData(clylen))
+				if err != nil {
+					klog.Errorf("Error writing to serial port:%v ", err)
+					return
+				}
+			}
 		}
 	}()
 	c.Client.SetStatus(common.StatusReady)
@@ -135,4 +172,27 @@ func getBowDataformat(trackData [4][4]float64) []float32 {
 	result[4] = float32(trackData[1][3] / 100)
 	result[4] = float32(trackData[2][3] / 100)
 	return result
+}
+
+func assembleSerialData(moves []float32) []byte {
+	b := []byte{0x55, 0xAA, 0x13, 0xFF, 0xF3}
+	sum := 0x13 + 0xFF + 0xF3
+	for i, item := range moves {
+		id := byte(i)
+		number1 := int32((item - 0.1569) * 40000)
+		number1_2 := byte(number1)
+		number1_1 := byte(number1 >> 8)
+		b = append(b, id, number1_1, number1_2)
+		sum += i + int(byte(number1)) + int(number1_2) + int(number1_1)
+	}
+	b = append(b, byte(sum))
+	return b
+}
+
+func randomGetCylen(i int) []float32 {
+	if i%2 == 0 {
+		return []float32{-5, 5, -5, 10, -10, 10}
+	} else {
+		return []float32{5, -5, 5, -10, 10, -10}
+	}
 }
