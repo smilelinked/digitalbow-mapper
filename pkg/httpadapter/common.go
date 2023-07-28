@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -114,7 +115,10 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 				}
 				c.Client.Client.Execute(bowResult, clylen)
 				klog.V(2).Infof("execute output %v", clylen)
-				_, err := port.Write(assembleSerialData(clylen))
+				writeMessage := assembleSerialData(clylen)
+				hex_string_data := hex.EncodeToString(writeMessage)
+				klog.V(2).Infof("serial output %s", hex_string_data)
+				_, err := port.Write(writeMessage)
 				if err != nil {
 					klog.Errorf("Error writing to serial port:%v ", err)
 					return
