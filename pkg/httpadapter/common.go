@@ -193,7 +193,7 @@ func assembleSerialData(moves []float32) []byte {
 
 func randomGetCylen(i int) []float32 {
 	if i%2 == 0 {
-		return []float32{-5, 5, -5, 10, -10, 10}
+		return []float32{2, 0, 0, 0, 0, 0}
 	} else {
 		return []float32{5, -5, 5, -10, 10, -10}
 	}
