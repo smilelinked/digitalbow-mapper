@@ -106,8 +106,9 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 				if len(executeRequest.Input) != 0 {
 					if i%2 == 0 {
 						bowResult = []float32{2, 0, 0, 0, 0, 0}
+					} else {
+						bowResult = executeRequest.Input
 					}
-					bowResult = executeRequest.Input
 				} else {
 					bowResult = randomGetCylen(i)
 				}
