@@ -193,7 +193,7 @@ func assembleSerialData(moves []float32) []byte {
 	b := []byte{0x55, 0xAA, 0x13, 0xFF, 0xF3}
 	sum := 0x13 + 0xFF + 0xF3
 	for i, item := range moves {
-		id := byte(i)
+		id := byte(i + 1)
 		number1 := int32((item - 0.1569) * 40000)
 		number1_2 := byte(number1)
 		number1_1 := byte(number1 >> 8)
