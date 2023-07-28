@@ -102,7 +102,15 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 			clylen := make([]float32, 6)
 			for i := 1; i <= 10; i++ {
 				time.Sleep(7 * time.Second)
-				bowResult := randomGetCylen(i)
+				var bowResult []float32
+				if len(executeRequest.Input) != 0 {
+					if i%2 == 0 {
+						bowResult = []float32{2, 0, 0, 0, 0, 0}
+					}
+					bowResult = executeRequest.Input
+				} else {
+					bowResult = randomGetCylen(i)
+				}
 				c.Client.Client.Execute(bowResult, clylen)
 				klog.V(2).Infof("execute output %v", clylen)
 				_, err := port.Write(assembleSerialData(clylen))
