@@ -68,11 +68,12 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 	time.Sleep(100 * time.Microsecond)
 
 	options := serial.OpenOptions{
-		PortName:   c.Client.Client.Config.SerialName,
-		BaudRate:   uint(c.Client.Client.Config.BaudRate),
-		DataBits:   uint(c.Client.Client.Config.DataBits),
-		StopBits:   uint(c.Client.Client.Config.StopBits),
-		ParityMode: serial.PARITY_NONE,
+		PortName:        c.Client.Client.Config.SerialName,
+		BaudRate:        uint(c.Client.Client.Config.BaudRate),
+		DataBits:        uint(c.Client.Client.Config.DataBits),
+		StopBits:        uint(c.Client.Client.Config.StopBits),
+		ParityMode:      serial.PARITY_NONE,
+		MinimumReadSize: 4,
 	}
 
 	go func() {
