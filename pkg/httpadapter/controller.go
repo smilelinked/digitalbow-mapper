@@ -104,7 +104,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 				var bowResult []float32
 				if len(executeRequest.Input) != 0 {
 					if i%2 == 0 {
-						bowResult = []float32{2, 0, 0, 0, 0, 0}
+						bowResult = []float32{5, 0, 0, 0, 0, 0}
 					} else {
 						bowResult = executeRequest.Input
 					}
@@ -121,7 +121,11 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 					klog.Errorf("Error writing to serial port:%v ", err)
 					return
 				}
-				time.Sleep(2 * time.Second)
+				if executeRequest.Period != 0 {
+					time.Sleep(time.Duration(executeRequest.Period) * time.Second)
+				} else {
+					time.Sleep(2 * time.Second)
+				}
 			}
 		}
 		// reset..
