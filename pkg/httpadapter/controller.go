@@ -121,7 +121,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 					klog.Errorf("Error writing to serial port:%v ", err)
 					return
 				}
-				time.Sleep(100 * time.Microsecond)
+				time.Sleep(2 * time.Second)
 			}
 		}
 		// reset..
