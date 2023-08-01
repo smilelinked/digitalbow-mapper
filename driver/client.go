@@ -28,6 +28,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -205,15 +206,6 @@ func (c *DigitalbowClient) DownloadResult(path, segment string) (err error) {
 	return nil
 }
 
-// Get get register.
-func (c *DigitalbowClient) Get(registerType string, addr uint16, quantity uint16) (results []byte, err error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	klog.V(2).Info("Get result: ", results)
-	return results, err
-}
-
 // Set set register.
 func (c *DigitalbowClient) Set(registerType string, addr uint16, value uint16) (results []byte, err error) {
 	c.mu.Lock()
@@ -223,4 +215,96 @@ func (c *DigitalbowClient) Set(registerType string, addr uint16, value uint16) (
 
 	klog.V(1).Info("Set result:", err, results)
 	return results, err
+}
+
+type Matrix3x3 struct {
+	m11, m12, m13 float64
+	m21, m22, m23 float64
+	m31, m32, m33 float64
+}
+
+type EulerAngle struct {
+	roll, pitch, yaw float64
+}
+
+func matrixToEuler(m Matrix3x3) EulerAngle {
+	var euler EulerAngle
+
+	// Roll (X-axis rotation)
+	euler.roll = math.Atan2(m.m32, m.m33)
+
+	// Pitch (Y-axis rotation)
+	sinPitch := -m.m31
+	cosPitch := math.Sqrt(m.m32*m.m32 + m.m33*m.m33)
+	euler.pitch = math.Atan2(sinPitch, cosPitch)
+
+	// Yaw (Z-axis rotation)
+	sinYaw := m.m21 / math.Cos(euler.pitch)
+	cosYaw := m.m11 / math.Cos(euler.pitch)
+	euler.yaw = math.Atan2(sinYaw, cosYaw)
+
+	// Convert to degrees
+	euler.roll = euler.roll * 180.0 / math.Pi
+	euler.pitch = euler.pitch * 180.0 / math.Pi
+	euler.yaw = euler.yaw * 180.0 / math.Pi
+
+	return euler
+}
+
+func (c *DigitalbowClient) GetBowDataformat(trackData [4][4]float64) []float32 {
+	result := make([]float32, 6)
+	rotationMatrix := Matrix3x3{
+		m11: trackData[0][0],
+		m12: trackData[0][1],
+		m13: trackData[0][2],
+		m21: trackData[1][0],
+		m22: trackData[1][1],
+		m23: trackData[1][2],
+		m31: trackData[2][0],
+		m32: trackData[2][1],
+		m33: trackData[2][2],
+	}
+
+	eulerAngle := matrixToEuler(rotationMatrix)
+	result[0] = float32(eulerAngle.roll)
+	result[1] = float32(eulerAngle.pitch)
+	result[2] = float32(eulerAngle.yaw)
+	result[3] = float32(trackData[0][3] / 100)
+	result[4] = float32(trackData[1][3] / 100)
+	result[4] = float32(trackData[2][3] / 100)
+	return result
+}
+
+func (c *DigitalbowClient) AssembleSerialData(moves []float32) []byte {
+	b := []byte{0x55, 0xAA, 0x13, 0xFF, 0xF3}
+	sum := 0x13 + 0xFF + 0xF3
+	for i, item := range moves {
+		id := byte(i + 1)
+		number1 := int32((item - 0.1569) * 40000)
+		number1_2 := byte(number1)
+		number1_1 := byte(number1 >> 8)
+		b = append(b, id, number1_1, number1_2)
+		sum += int(id) + int(number1_2) + int(number1_1)
+	}
+	b = append(b, byte(sum))
+	return b
+}
+
+func (c *DigitalbowClient) RandomGetCylen(i int) []float32 {
+	if i%3 == 0 {
+		return []float32{2, 0, 0, 0, 0, 0}
+	} else if i%3 == 1 {
+		return []float32{-5, 5, -5, 0.01, -0.01, 0.01}
+	} else {
+		return []float32{5, -5, 5, -0.01, 0.01, -0.01}
+	}
+}
+
+func (c *DigitalbowClient) ResetToZero() []byte {
+	clylen := make([]float32, 6)
+	bowResult := []float32{0, 0, 0, 0, 0, 0}
+	c.Client.Execute(bowResult, clylen)
+	klog.V(2).Infof("execute output %v", clylen)
+	writeMessage := c.AssembleSerialData(clylen)
+	return writeMessage
 }
