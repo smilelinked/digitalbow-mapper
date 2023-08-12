@@ -114,7 +114,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 				var bowResult []float64
 				if len(executeRequest.Input) != 0 {
 					if i%2 == 0 {
-						bowResult = []float64{5, 0, 0, 0, 0, 0}
+						bowResult = []float64{0, 0, 0, 0, 0, 0}
 					} else {
 						bowResult = executeRequest.Input
 					}
