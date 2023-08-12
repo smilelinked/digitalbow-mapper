@@ -98,7 +98,7 @@ func (bowClient BowClient) GetStatus() interface{} {
 	return nil
 }
 
-func (bowClient BowClient) Execute(movements []float64, clylen []float32) {
+func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
 	klog.V(2).Infof("execute input %v", movements)
 	C.SoluteCylinderLength((*C.float)(&movements[0]), (*C.float)(&clylen[0]))
 }
@@ -349,19 +349,19 @@ func (c *DigitalbowClient) AssembleSerialData(moves []float32) []byte {
 	return b
 }
 
-func (c *DigitalbowClient) RandomGetCylen(i int) []float64 {
+func (c *DigitalbowClient) RandomGetCylen(i int) []float32 {
 	if i%3 == 0 {
-		return []float64{2, 0, 0, 0, 0, 0}
+		return []float32{2, 0, 0, 0, 0, 0}
 	} else if i%3 == 1 {
-		return []float64{-5, 5, -5, 0.01, -0.01, 0.01}
+		return []float32{-5, 5, -5, 0.01, -0.01, 0.01}
 	} else {
-		return []float64{5, -5, 5, -0.01, 0.01, -0.01}
+		return []float32{5, -5, 5, -0.01, 0.01, -0.01}
 	}
 }
 
 func (c *DigitalbowClient) ResetToZero() []byte {
 	clylen := make([]float32, 6)
-	bowResult := []float64{0, 0, 0, 0, 0, 0}
+	bowResult := []float32{0, 0, 0, 0, 0, 0}
 	c.Client.Execute(bowResult, clylen)
 	klog.V(2).Infof("execute output %v", clylen)
 	writeMessage := c.AssembleSerialData(clylen)

@@ -41,6 +41,6 @@ type DownloadRequest struct {
 type ExecuteRequest struct {
 	Segment string    `json:"segment"`
 	Random  bool      `json:"random"`
-	Input   []float64 `json:"input"`
+	Input   []float32 `json:"input"`
 	Period  int       `json:"period"`
 }
