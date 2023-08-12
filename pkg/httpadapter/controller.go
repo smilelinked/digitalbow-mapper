@@ -99,13 +99,13 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 				matrixInit := mat.NewDense(1, 6, aInit)
 				var sixdofA mat.Dense
 				sixdofA.Sub(matrixA, matrixInit)
-				time.Sleep(100 * time.Microsecond)
 				input64 := sixdofA.RawRowView(0)
 				input32 := make([]float32, 6)
 				for i := 0; i < 6; i++ {
 					input32[i] = float32(input64[i])
 				}
 				c.Client.Client.Execute(input32, clylen)
+				time.Sleep(100 * time.Millisecond)
 				klog.V(2).Infof("execute with %v", clylen)
 				_, err := port.Write(c.Client.AssembleSerialData(clylen))
 				if err != nil {
