@@ -115,7 +115,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 			}
 		} else {
 			clylen := make([]float32, 6)
-			for i := 1; i <= 10; i++ {
+			for i := 1; i <= 2; i++ {
 				var bowResult []float32
 				if len(executeRequest.Input) != 0 {
 					if i%2 == 0 {
