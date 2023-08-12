@@ -32,10 +32,17 @@ import (
 	"sync"
 	"time"
 
+	"gonum.org/v1/gonum/mat"
 	"k8s.io/klog/v2"
 
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"github.com/smilelinkd/digitalbow-mapper/pkg/common"
+)
+
+const (
+	IP_A_x float64 = 0
+	IP_A_y float64 = 0
+	IP_A_z float64 = 50
 )
 
 // BowRTUConfig is the configurations of modbus RTU.
@@ -53,6 +60,7 @@ type TrackData struct {
 	Size       int             `json:"size"`
 	Frequency  int             `json:"frequency"`
 	MatrixList [][4][4]float64 `json:"Matrix_list"`
+	MatrixInit [4][4]float64   `json:"Matrix_init"`
 	IPList     [][3]float64    `json:"IP_list"`
 	LCList     [][3]float64    `json:"LC_list"`
 	RCList     [][3]float64    `json:"RC_list"`
@@ -90,17 +98,19 @@ func (bowClient BowClient) GetStatus() interface{} {
 	return nil
 }
 
-func (bowClient BowClient) Execute(movements []float32, clylen []float32) {
+func (bowClient BowClient) Execute(movements []float64, clylen []float32) {
 	klog.V(2).Infof("execute input %v", movements)
 	C.SoluteCylinderLength((*C.float)(&movements[0]), (*C.float)(&clylen[0]))
 }
 
 // DigitalbowClient is the structure for modbus client.
 type DigitalbowClient struct {
-	Client    BowClient
-	Status    common.DeviceStatus
-	Movements map[string]TrackData
-	mu        sync.Mutex
+	Client       BowClient
+	Status       common.DeviceStatus
+	Movements    map[string]TrackData
+	mu           sync.Mutex
+	Transform_AU *mat.Dense
+	Rotation_AU  *mat.Dense
 }
 
 /*
@@ -119,12 +129,46 @@ func newRTUClient(config BowRTUConfig) *DigitalbowClient {
 		return client
 	}
 
+	//# 平移向量:
+	UO_A_x := IP_A_x
+	UO_A_y := IP_A_y
+	UO_A_z := IP_A_z
+
+	//# U->A的旋转矩阵，变换矩阵:
+	//# 3X3 旋转矩阵
+	Rotation_AU := mat.NewDense(3, 3, nil)
+	Rotation_AU.SetRow(0, []float64{
+		1, 0, 0,
+	})
+	Rotation_AU.SetRow(1, []float64{
+		0, math.Cos(math.Pi * 90 / 180), -math.Sin(math.Pi * 90 / 180),
+	})
+	Rotation_AU.SetRow(2, []float64{
+		0, math.Sin(math.Pi * 90 / 180), math.Cos(math.Pi * 90 / 180),
+	})
+
+	Transform_AU := mat.NewDense(4, 4, nil)
+	Transform_AU.SetRow(0, []float64{
+		1, 0, 0, UO_A_x,
+	})
+	Transform_AU.SetRow(1, []float64{
+		0, math.Cos(math.Pi * 90 / 180), -math.Sin(math.Pi * 90 / 180), UO_A_y,
+	})
+	Transform_AU.SetRow(2, []float64{
+		0, math.Sin(math.Pi * 90 / 180), math.Cos(math.Pi * 90 / 180), UO_A_z,
+	})
+	Transform_AU.SetRow(3, []float64{
+		0, 0, 0, 1,
+	})
+
 	client := DigitalbowClient{
 		Status: common.StatusReady,
 		Client: BowClient{
 			Config: config,
 		},
-		Movements: make(map[string]TrackData, 0),
+		Movements:    make(map[string]TrackData, 0),
+		Transform_AU: Transform_AU,
+		Rotation_AU:  Rotation_AU,
 	}
 
 	clients[config.SerialName] = &client
@@ -217,31 +261,29 @@ func (c *DigitalbowClient) Set(registerType string, addr uint16, value uint16) (
 	return results, err
 }
 
-type Matrix3x3 struct {
-	m11, m12, m13 float64
-	m21, m22, m23 float64
-	m31, m32, m33 float64
-}
-
 type EulerAngle struct {
 	roll, pitch, yaw float64
 }
 
-func matrixToEuler(m Matrix3x3) EulerAngle {
+func matrixToEuler(m [][]float64) EulerAngle {
 	var euler EulerAngle
 
-	// Roll (X-axis rotation)
-	euler.roll = math.Atan2(m.m32, m.m33)
-
-	// Pitch (Y-axis rotation)
-	sinPitch := -m.m31
-	cosPitch := math.Sqrt(m.m32*m.m32 + m.m33*m.m33)
-	euler.pitch = math.Atan2(sinPitch, cosPitch)
-
-	// Yaw (Z-axis rotation)
-	sinYaw := m.m21 / math.Cos(euler.pitch)
-	cosYaw := m.m11 / math.Cos(euler.pitch)
-	euler.yaw = math.Atan2(sinYaw, cosYaw)
+	if m[2][0] == -1 {
+		euler.pitch = math.Pi / 2
+		euler.roll = math.Atan2(m[0][1], m[0][2])
+		euler.yaw = 0
+	} else if m[2][0] == 1 {
+		euler.pitch = -math.Pi / 2
+		euler.roll = math.Atan2(-m[0][1], -m[0][2])
+		euler.yaw = 0
+	} else {
+		// Roll (X-axis rotation)
+		euler.roll = math.Atan2(m[2][1], m[2][2])
+		// Pitch (Y-axis rotation)
+		euler.pitch = math.Asin(-m[2][0])
+		// Yaw (Z-axis rotation)
+		euler.yaw = math.Atan2(m[1][0], m[0][0])
+	}
 
 	// Convert to degrees
 	euler.roll = euler.roll * 180.0 / math.Pi
@@ -251,27 +293,44 @@ func matrixToEuler(m Matrix3x3) EulerAngle {
 	return euler
 }
 
-func (c *DigitalbowClient) GetBowDataformat(trackData [4][4]float64) []float32 {
-	result := make([]float32, 6)
-	rotationMatrix := Matrix3x3{
-		m11: trackData[0][0],
-		m12: trackData[0][1],
-		m13: trackData[0][2],
-		m21: trackData[1][0],
-		m22: trackData[1][1],
-		m23: trackData[1][2],
-		m31: trackData[2][0],
-		m32: trackData[2][1],
-		m33: trackData[2][2],
-	}
+func (c *DigitalbowClient) GetBowDataformat(trackData [4][4]float64, matrixInit [4][4]float64) []float64 {
+	result := make([]float64, 6)
 
-	eulerAngle := matrixToEuler(rotationMatrix)
-	result[0] = float32(eulerAngle.roll)
-	result[1] = float32(eulerAngle.pitch)
-	result[2] = float32(eulerAngle.yaw)
-	result[3] = float32(trackData[0][3] / 100)
-	result[4] = float32(trackData[1][3] / 100)
-	result[4] = float32(trackData[2][3] / 100)
+	trackMatrix := mat.NewDense(4, 4, nil)
+	for i := 0; i < 4; i++ {
+		trackMatrix.SetRow(i, trackData[i][:])
+	}
+	trackInitMatrix := mat.NewDense(4, 4, nil)
+	for i := 0; i < 4; i++ {
+		trackInitMatrix.SetRow(i, matrixInit[i][:])
+	}
+	var loopMatrix mat.Dense
+	loopMatrix.Add(trackMatrix, trackInitMatrix)
+	//#--------- 分别计算A坐标系下的欧拉角，和 平移向量
+	//# 旋转矩阵 3X3
+	rotateMatrix := [][]float64{
+		loopMatrix.RawRowView(0)[0:3],
+		loopMatrix.RawRowView(1)[0:3],
+		loopMatrix.RawRowView(2)[0:3],
+	}
+	//# 旋转矩阵 转换 欧拉角
+	eulerAngle := matrixToEuler(rotateMatrix)
+	//# A坐标系下：计算欧拉角，这一步不能提前，必须在欧拉角算出来后，把U坐标系下的欧拉角换到A坐标系下
+	var eulerA mat.Dense
+	eulerAngleMatrix := mat.NewDense(3, 1, []float64{
+		eulerAngle.roll, eulerAngle.pitch, eulerAngle.yaw,
+	})
+	eulerA.Mul(c.Rotation_AU, eulerAngleMatrix)
+	//# A坐标系下：计算平移向量，位移单位要求为m。 之前是mm，所以要除1000
+	var vectorA mat.Dense
+	vectorA.Mul(c.Transform_AU, &loopMatrix)
+
+	result[0] = eulerA.At(0, 0)
+	result[1] = eulerA.At(1, 0)
+	result[2] = eulerA.At(2, 0)
+	result[3] = vectorA.At(0, 3) / 1000
+	result[4] = vectorA.At(1, 3) / 1000
+	result[4] = vectorA.At(2, 3) / 1000
 	return result
 }
 
@@ -281,8 +340,8 @@ func (c *DigitalbowClient) AssembleSerialData(moves []float32) []byte {
 	for i, item := range moves {
 		id := byte(i + 1)
 		number1 := int32((item - 0.1569) * 40000)
-		number1_2 := byte(number1)
-		number1_1 := byte(number1 >> 8)
+		number1_1 := byte(number1)
+		number1_2 := byte(number1 >> 8)
 		b = append(b, id, number1_1, number1_2)
 		sum += int(id) + int(number1_2) + int(number1_1)
 	}
@@ -290,19 +349,19 @@ func (c *DigitalbowClient) AssembleSerialData(moves []float32) []byte {
 	return b
 }
 
-func (c *DigitalbowClient) RandomGetCylen(i int) []float32 {
+func (c *DigitalbowClient) RandomGetCylen(i int) []float64 {
 	if i%3 == 0 {
-		return []float32{2, 0, 0, 0, 0, 0}
+		return []float64{2, 0, 0, 0, 0, 0}
 	} else if i%3 == 1 {
-		return []float32{-5, 5, -5, 0.01, -0.01, 0.01}
+		return []float64{-5, 5, -5, 0.01, -0.01, 0.01}
 	} else {
-		return []float32{5, -5, 5, -0.01, 0.01, -0.01}
+		return []float64{5, -5, 5, -0.01, 0.01, -0.01}
 	}
 }
 
 func (c *DigitalbowClient) ResetToZero() []byte {
 	clylen := make([]float32, 6)
-	bowResult := []float32{0, 0, 0, 0, 0, 0}
+	bowResult := []float64{0, 0, 0, 0, 0, 0}
 	c.Client.Execute(bowResult, clylen)
 	klog.V(2).Infof("execute output %v", clylen)
 	writeMessage := c.AssembleSerialData(clylen)

@@ -9,6 +9,7 @@ import (
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/smilelinkd/digitalbow-mapper/configmap"
 	"github.com/smilelinkd/digitalbow-mapper/pkg/common"
+	"gonum.org/v1/gonum/mat"
 	"k8s.io/klog/v2"
 )
 
@@ -86,11 +87,20 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 
 		if !executeRequest.Random {
 			trackData := c.Client.Movements[executeRequest.Segment]
+			aInit := make([]float64, 6)
 			clylen := make([]float32, 6)
-			for _, item := range trackData.MatrixList {
-				bowResult := c.Client.GetBowDataformat(item)
+			for record, item := range trackData.MatrixList {
+				bowResult := c.Client.GetBowDataformat(item, trackData.MatrixInit)
+				if record == 0 {
+					//# 记录第0帧的初始参数
+					aInit = bowResult
+				}
+				matrixA := mat.NewDense(1, 6, bowResult)
+				matrixInit := mat.NewDense(1, 6, aInit)
+				var sixdofA mat.Dense
+				sixdofA.Sub(matrixA, matrixInit)
 				time.Sleep(100 * time.Microsecond)
-				c.Client.Client.Execute(bowResult, clylen)
+				c.Client.Client.Execute(sixdofA.RawRowView(0), clylen)
 				klog.V(2).Infof("execute with %v", clylen)
 				_, err := port.Write(c.Client.AssembleSerialData(clylen))
 				if err != nil {
@@ -101,10 +111,10 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 		} else {
 			clylen := make([]float32, 6)
 			for i := 1; i <= 10; i++ {
-				var bowResult []float32
+				var bowResult []float64
 				if len(executeRequest.Input) != 0 {
 					if i%2 == 0 {
-						bowResult = []float32{5, 0, 0, 0, 0, 0}
+						bowResult = []float64{5, 0, 0, 0, 0, 0}
 					} else {
 						bowResult = executeRequest.Input
 					}
