@@ -105,7 +105,7 @@ func (c *RestController) Execute(writer http.ResponseWriter, request *http.Reque
 					input32[i] = float32(input64[i])
 				}
 				c.Client.Client.Execute(input32, clylen)
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(33 * time.Millisecond)
 				klog.V(2).Infof("execute with %v", clylen)
 				_, err := port.Write(c.Client.AssembleSerialData(clylen))
 				if err != nil {
